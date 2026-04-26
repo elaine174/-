@@ -1,5 +1,5 @@
 node_modules/
 uploads/
-contest.db
+data.json
 *.db
 .env
