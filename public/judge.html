@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚖️ 評審入口</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Noto Sans TC','sans-serif']}}}}</script>
+  <style>body{background:#FFF8F0;}</style>
+</head>
+<body class="min-h-screen font-sans">
+  <div class="max-w-2xl mx-auto px-4 py-6">
+    <div class="flex items-center gap-3 mb-6">
+      <a href="/" class="text-2xl text-gray-400">←</a>
+      <h1 class="text-xl font-black text-gray-800">⚖️ 評審入口</h1>
+    </div>
+
+    <!-- Step 1: Login -->
+    <div id="step-login" class="bg-white rounded-2xl p-6 shadow-sm">
+      <h2 class="font-bold text-gray-700 mb-1">評審密碼登入</h2>
+      <p class="text-xs text-gray-400 mb-4">請向主辦人索取評審密碼</p>
+      <input type="password" id="pw" placeholder="評審密碼"
+        class="w-full px-4 py-3 border border-gray-200 rounded-xl mb-3 text-base focus:outline-none focus:border-indigo-400">
+      <button onclick="judgeLogin()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">登入</button>
+      <div id="login-err" class="hidden mt-2 text-red-500 text-sm text-center"></div>
+    </div>
+
+    <!-- Step 2: Select Award -->
+    <div id="step-award" class="hidden bg-white rounded-2xl p-6 shadow-sm">
+      <h2 class="font-bold text-gray-700 mb-1">選擇你要評選的獎項</h2>
+      <p class="text-xs text-gray-400 mb-4">每個獎項只能選一位得獎者</p>
+      <div id="award-list" class="space-y-3"></div>
+    </div>
+
+    <!-- Step 3: Pick Winner -->
+    <div id="step-pick" class="hidden">
+      <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 mb-4">
+        <div class="font-black text-indigo-800" id="pick-award-name"></div>
+        <div class="text-sm text-indigo-600">請從下方選出得獎照片（照片不含姓名）</div>
+      </div>
+      <div id="done-msg" class="hidden bg-green-50 border border-green-200 rounded-2xl p-4 mb-4 text-center">
+        <div class="text-3xl mb-1">✅</div>
+        <div class="font-bold text-green-700">已選定！</div>
+        <div class="text-sm text-green-600" id="done-detail"></div>
+        <button onclick="backToAwards()" class="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold">回到獎項列表</button>
+      </div>
+      <div id="photos-grid" class="grid grid-cols-2 gap-3 sm:grid-cols-3"></div>
+    </div>
+  </div>
+
+  <script>
+    let pw = '', selectedAward = null;
+
+    async function judgeLogin() {
+      pw = document.getElementById('pw').value;
+      const res = await fetch('/api/judge/awards?password=' + encodeURIComponent(pw));
+      if (!res.ok) {
+        document.getElementById('login-err').textContent = '密碼錯誤 ❌';
+        document.getElementById('login-err').classList.remove('hidden');
+        return;
+      }
+      const { awards } = await res.json();
+      document.getElementById('step-login').classList.add('hidden');
+      document.getElementById('step-award').classList.remove('hidden');
+      renderAwards(awards);
+    }
+
+    document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') judgeLogin(); });
+
+    function renderAwards(awards) {
+      document.getElementById('award-list').innerHTML = awards.map(a => `
+        <button onclick='selectAward(${JSON.stringify(a)})'
+          class="w-full p-4 rounded-xl border-2 text-left transition-colors ${a.winner_photo_id ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white hover:border-indigo-400'}">
+          <div class="font-black text-gray-800">${a.name}</div>
+          <div class="text-sm text-gray-500">評選：${a.judge_name}</div>
+          ${a.winner_photo_id ? `<div class="text-xs text-green-600 mt-1">✅ 已選定 #${a.winner_display_id}</div>` : '<div class="text-xs text-orange-500 mt-1">⏳ 尚未選定</div>'}
+        </button>
+      `).join('');
+    }
+
+    async function selectAward(award) {
+      selectedAward = award;
+      document.getElementById('step-award').classList.add('hidden');
+      document.getElementById('step-pick').classList.remove('hidden');
+      document.getElementById('done-msg').classList.add('hidden');
+      document.getElementById('pick-award-name').textContent = '🏆 ' + award.name;
+      const { photos } = await (await fetch('/api/photos')).json();
+      document.getElementById('photos-grid').innerHTML = photos.map(p => `
+        <div onclick="pickWinner('${p.id}', ${p.display_id})" class="bg-white rounded-2xl shadow-sm overflow-hidden cursor-pointer active:scale-95 transition-transform ${award.winner_photo_id === p.id ? 'ring-2 ring-green-400' : ''}">
+          <img src="/uploads/${p.filename}" class="w-full aspect-square object-cover">
+          <div class="p-2 text-center">
+            <div class="text-xs font-bold text-gray-500">參賽者 #${p.display_id}</div>
+            ${award.winner_photo_id === p.id ? '<div class="text-xs text-green-600 font-bold">✓ 已選</div>' : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function pickWinner(photo_id, display_id) {
+      if (!confirm(`確定選 #${display_id} 為「${selectedAward.name}」得獎者？`)) return;
+      const res = await fetch('/api/judge/pick', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ award_id: selectedAward.id, photo_id, password: pw })
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error); return; }
+      document.getElementById('photos-grid').classList.add('hidden');
+      document.getElementById('done-detail').textContent = `參賽者 #${display_id} 獲得「${selectedAward.name}」！`;
+      document.getElementById('done-msg').classList.remove('hidden');
+    }
+
+    async function backToAwards() {
+      document.getElementById('step-pick').classList.add('hidden');
+      document.getElementById('photos-grid').classList.remove('hidden');
+      document.getElementById('step-award').classList.remove('hidden');
+      const { awards } = await (await fetch('/api/judge/awards?password=' + encodeURIComponent(pw))).json();
+      renderAwards(awards);
+    }
+  </script>
+</body>
+</html>
