@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔧 管理後台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Noto Sans TC','sans-serif']}}}}</script>
+  <style>body{background:#FFF8F0;}</style>
+</head>
+<body class="min-h-screen font-sans">
+  <div class="max-w-lg mx-auto px-4 py-6">
+    <div class="flex items-center gap-3 mb-6">
+      <a href="/" class="text-2xl text-gray-400">←</a>
+      <h1 class="text-xl font-black text-gray-800">🔧 管理後台</h1>
+    </div>
+    <div id="login" class="bg-white rounded-2xl p-6 shadow-sm">
+      <h2 class="font-bold text-gray-700 mb-4">請輸入管理員密碼</h2>
+      <input type="password" id="pw" placeholder="密碼"
+        class="w-full px-4 py-3 border border-gray-200 rounded-xl mb-3 text-base focus:outline-none focus:border-gray-400">
+      <button onclick="login()" class="w-full py-3 bg-gray-800 text-white rounded-xl font-bold">登入</button>
+      <div id="login-err" class="hidden mt-2 text-red-500 text-sm text-center"></div>
+    </div>
+    <div id="dash" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-5 shadow-sm">
+        <h2 class="font-bold text-gray-700 mb-3">📊 統計</h2>
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div class="bg-orange-50 rounded-xl p-3"><div class="font-black text-2xl text-orange-500" id="s-photos">-</div><div class="text-xs text-gray-400">投稿數</div></div>
+          <div class="bg-green-50 rounded-xl p-3"><div class="font-black text-2xl text-green-600" id="s-votes">-</div><div class="text-xs text-gray-400">投票數</div></div>
+          <div class="bg-blue-50 rounded-xl p-3"><div class="font-black text-xl" id="s-status">-</div><div class="text-xs text-gray-400">狀態</div></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm space-y-3">
+        <h2 class="font-bold text-gray-700 mb-1">⚙️ 控制</h2>
+        <button onclick="toggleVoting()" id="toggle-btn" class="w-full py-3 rounded-xl font-bold text-white bg-gray-400">載入中...</button>
+        <button onclick="reveal()" class="w-full py-3 bg-yellow-500 text-white rounded-xl font-bold">🏆 揭曉結果（結束投票並顯示姓名）</button>
+        <button onclick="hideRes()" class="w-full py-3 bg-gray-500 text-white rounded-xl font-bold">🔒 隐藏結果</button>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm">
+        <h2 class="font-bold text-gray-700 mb-3">📋 所有投稿（含姓名）</h2>
+        <div id="sub-list" class="space-y-3"></div>
+      </div>
+      <div class="bg-red-50 border border-red-200 rounded-2xl p-5">
+        <h2 class="font-bold text-red-700 mb-3">⚠️ 危險區域</h2>
+        <button onclick="resetAll()" class="w-full py-3 bg-red-500 text-white rounded-xl font-bold">🗑️ 清除所有資料（重置比賽）</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    let pw='';
+    async function login(){
+      pw=document.getElementById('pw').value;
+      const res=await fetch('/api/admin/submissions?password='+encodeURIComponent(pw));
+      if(!res.ok){document.getElementById('login-err').textContent='密碼錯誤';document.getElementById('login-err').classList.remove('hidden');return;}
+      document.getElementById('login').classList.add('hidden');
+      document.getElementById('dash').classList.remove('hidden');
+      loadDash();
+    }
+    document.getElementById('pw').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+    async function loadDash(){
+      const [s,r]=await Promise.all([fetch('/api/status'),fetch('/api/admin/submissions?password='+encodeURIComponent(pw))]);
+      const status=await s.json(), {photos}=await r.json();
+      document.getElementById('s-photos').textContent=status.photo_count;
+      document.getElementById('s-votes').textContent=status.vote_count;
+      document.getElementById('s-status').textContent=status.revealed?'🏆揭曉':status.voting_open?'🗳️投票':'📸投稿';
+      const btn=document.getElementById('toggle-btn');
+      if(status.voting_open){btn.textContent='⏹️ 結束投票';btn.className='w-full py-3 rounded-xl font-bold text-white bg-red-500';}
+      else{btn.textContent='▶️ 開始投票';btn.className='w-full py-3 rounded-xl font-bold text-white bg-green-500';}
+      const list=document.getElementById('sub-list');
+      if(!photos.length){list.innerHTML='<p class="text-gray-400 text-sm">目前沒有投稿</p>';return;}
+      list.innerHTML=photos.map(p=>`
+        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+          <img src="/uploads/${p.filename}" class="w-14 h-14 object-cover rounded-lg flex-shrink-0">
+          <div class="flex-1 min-w-0"><div class="font-bold text-gray-800">${p.name}</div><div class="text-xs text-gray-400">#${p.display_id}</div></div>
+          <div class="text-right flex-shrink-0"><div class="font-black text-orange-500">${p.votes}</div><div class="text-xs text-gray-400">票</div></div>
+        </div>
+      `).join('');
+    }
+    async function post(url){
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+      return res.json();
+    }
+    async function toggleVoting(){const d=await post('/api/admin/toggle-voting');if(d.error){alert(d.error);return;}alert(d.voting_open?'✅ 投票已開始！':'✅ 投票已結束！');loadDash();}
+    async function reveal(){if(!confirm('確定揭曉結果？這將結束投票並顯示所有人的姓名！'))return;const d=await post('/api/admin/reveal');if(d.error){alert(d.error);return;}alert('🏆 結果已揭曉！');loadDash();}
+    async function hideRes(){if(!confirm('確定隱藏結果？'))return;const d=await post('/api/admin/hide');if(d.error){alert(d.error);return;}alert('已隱藏結果');loadDash();}
+    async function resetAll(){if(!confirm('⚠️ 確定清除所有投稿和投票資料？此操作無法復原！'))return;if(!confirm('再次確認：所有資料將被永久刪除！'))return;const d=await post('/api/admin/reset');if(d.error){alert(d.error);return;}alert('已重置所有資料');loadDash();}
+  </script>
+</body>
+</html>
