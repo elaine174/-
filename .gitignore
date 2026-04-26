@@ -1,0 +1,5 @@
+node_modules/
+uploads/
+contest.db
+*.db
+.env
