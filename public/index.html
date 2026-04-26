@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐾 新北動物迷因攝影大賽</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Noto Sans TC','sans-serif']}}}}</script>
+  <style>body{background:#FFF8F0;}</style>
+</head>
+<body class="min-h-screen font-sans">
+  <div class="max-w-lg mx-auto px-4 py-8">
+    <div class="text-center mb-8">
+      <div class="text-6xl mb-2">🐒🦁🐘</div>
+      <div class="text-xs font-bold text-indigo-600 tracking-widest mb-1">JCI 新北國際青年商會</div>
+      <h1 class="text-3xl font-black text-gray-800 leading-tight">新北動物迷因攝影大賽</h1>
+      <p class="text-gray-400 mt-1 text-sm">新竹市立動物園 · 2025</p>
+    </div>
+    <div class="bg-white rounded-2xl p-4 mb-6 shadow-sm flex items-center justify-between">
+      <div class="text-sm text-gray-500">目前投稿數 <span class="font-black text-2xl text-orange-500 ml-1" id="cnt">-</span></div>
+      <div id="badge" class="text-xs font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-500">載入中</div>
+    </div>
+    <div class="space-y-3">
+      <a href="/submit.html" class="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow block">
+        <div class="text-4xl">📸</div>
+        <div><div class="font-bold text-gray-800">投稿照片</div><div class="text-sm text-gray-400">上傳你拍到的動物迷因照</div></div>
+        <div class="ml-auto text-gray-300 text-xl">›</div>
+      </a>
+      <a href="/vote.html" class="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow block">
+        <div class="text-4xl">🗳️</div>
+        <div><div class="font-bold text-gray-800">投票</div><div class="text-sm text-gray-400">為最愛的迷因照投一票</div></div>
+        <div class="ml-auto text-gray-300 text-xl">›</div>
+      </a>
+      <a href="/results.html" class="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow block">
+        <div class="text-4xl">🏆</div>
+        <div><div class="font-bold text-gray-800">投票結果</div><div class="text-sm text-gray-400">查看得票排行榜</div></div>
+        <div class="ml-auto text-gray-300 text-xl">›</div>
+      </a>
+    </div>
+    <div class="text-center mt-8"><a href="/admin.html" class="text-xs text-gray-300 hover:text-gray-500">管理後台</a></div>
+  </div>
+  <script>
+    fetch('/api/status').then(r=>r.json()).then(d=>{
+      document.getElementById('cnt').textContent=d.photo_count;
+      const b=document.getElementById('badge');
+      if(d.revealed){b.textContent='🏆 結果已揭曉';b.className='text-xs font-bold px-3 py-1 rounded-full bg-yellow-100 text-yellow-700';}
+      else if(d.voting_open){b.textContent='🗳️ 投票進行中';b.className='text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700';}
+      else{b.textContent='📸 投稿進行中';b.className='text-xs font-bold px-3 py-1 rounded-full bg-orange-100 text-orange-700';}
+    });
+  </script>
+</body>
+</html>

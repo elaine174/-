@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🗳️ 投票</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Noto Sans TC','sans-serif']}}}}</script>
+  <style>body{background:#FFF8F0;}</style>
+</head>
+<body class="min-h-screen font-sans">
+  <div class="max-w-2xl mx-auto px-4 py-6">
+    <div class="flex items-center gap-3 mb-4">
+      <a href="/" class="text-2xl text-gray-400">←</a>
+      <h1 class="text-xl font-black text-gray-800">🗳️ 投票</h1>
+    </div>
+    <div id="banner" class="rounded-xl p-3 text-center text-sm font-bold mb-4"></div>
+    <div id="voted-note" class="hidden bg-green-50 border border-green-200 rounded-xl p-3 text-center text-green-700 text-sm font-bold mb-4">✅ 你已投票！結果揭曉後公開</div>
+    <div id="loading" class="text-center py-16 text-gray-400">載入中...</div>
+    <div id="empty" class="hidden text-center py-16 text-gray-400">
+      <div class="text-5xl mb-3">🦒</div><p>還沒有人投稿，快去拍照！</p>
+    </div>
+    <div id="grid" class="grid grid-cols-2 gap-3 sm:grid-cols-3"></div>
+  </div>
+  <script>
+    let myVote=null, votingOpen=false, hasVoted=false, revealed=false;
+    async function load(){
+      const [s,p]=await Promise.all([fetch('/api/status'),fetch('/api/photos')]);
+      const status=await s.json(), {photos,my_vote}=await p.json();
+      revealed=status.revealed; votingOpen=status.voting_open; hasVoted=status.has_voted; myVote=my_vote;
+      const b=document.getElementById('banner');
+      if(revealed){b.className='rounded-xl p-3 text-center text-sm font-bold mb-4 bg-yellow-100 text-yellow-700';b.textContent='🏆 投票已結束！前往結果頁面';}
+      else if(votingOpen){b.className='rounded-xl p-3 text-center text-sm font-bold mb-4 bg-green-100 text-green-700';b.textContent='✨ 投票進行中！每人只能投一票 🐾';}
+      else{b.className='rounded-xl p-3 text-center text-sm font-bold mb-4 bg-gray-100 text-gray-500';b.textContent='⏳ 投票尚未開始，請等待主辦人開放';}
+      if(hasVoted)document.getElementById('voted-note').classList.remove('hidden');
+      document.getElementById('loading').classList.add('hidden');
+      if(!photos.length){document.getElementById('empty').classList.remove('hidden');return;}
+      document.getElementById('grid').innerHTML=photos.map(p=>{
+        const mine=p.id===myVote;
+        return `<div class="bg-white rounded-2xl shadow-sm overflow-hidden ${mine?'ring-2 ring-green-400':''}">
+          <div class="relative">
+            <img src="/uploads/${p.filename}" class="w-full aspect-square object-cover">
+            ${mine?'<div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">✓ 我的票</div>':''}
+          </div>
+          <div class="p-3">
+            <div class="text-xs text-gray-400 font-bold mb-1">參賽者 #${p.display_id}</div>
+            ${revealed?`<div class="font-bold text-sm text-gray-700">${p.name}</div><div class="text-sm text-gray-400 mt-1">🗳️ ${p.votes} 票</div>`:''}
+            ${!revealed&&votingOpen&&!hasVoted?`<button onclick="vote('${p.id}')" class="w-full mt-2 py-2 bg-orange-500 text-white rounded-xl text-sm font-bold active:scale-95">投這一票 ❤️</button>`:''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+    async function vote(photo_id){
+      if(!confirm('確定投票給這張照片嗎？每人只能投一票！'))return;
+      const res=await fetch('/api/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({photo_id})});
+      const data=await res.json();
+      if(!res.ok){alert(data.error);return;}
+      alert('🎉 投票成功！');load();
+    }
+    load();
+  </script>
+</body>
+</html>
