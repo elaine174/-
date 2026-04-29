@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Google Font ── */
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background-color: #FAF8F3;
+  overflow-x: hidden;
+}
+
+/* ── 3D 卡片翻轉 ── */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+.card-flip-inner {
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.card-flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+/* ── 選擇動畫 ── */
+@keyframes selected-pulse {
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(201,168,76,0.5); }
+  50%  { transform: scale(1.04); box-shadow: 0 0 0 10px rgba(201,168,76,0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+}
+.selected-pulse {
+  animation: selected-pulse 0.5s ease-out;
+}
+
+/* ── 五彩紙屑 ── */
+@keyframes confetti-1 {
+  0%   { transform: translateY(-10px) rotateZ(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotateZ(720deg); opacity: 0; }
+}
+@keyframes confetti-2 {
+  0%   { transform: translateY(-10px) rotateZ(45deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotateZ(-540deg); opacity: 0; }
+}
+.confetti-piece {
+  position: fixed;
+  top: -20px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  animation: confetti-1 2.5s ease-in forwards;
+  pointer-events: none;
+  z-index: 999;
+}
+.confetti-piece:nth-child(even) {
+  animation-name: confetti-2;
+}
+
+/* ── 進度條 ── */
+.progress-bar-fill {
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── 按鈕 hover 上浮 ── */
+.btn-float {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-float:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(45, 90, 61, 0.25);
+}
+.btn-float:active {
+  transform: translateY(0);
+}
+
+/* ── 員工卡片選中效果 ── */
+.employee-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+.employee-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(45, 90, 61, 0.18);
+}
+.employee-card:active {
+  transform: scale(0.97);
+}
+
+/* ── 星星動畫 ── */
+@keyframes star-appear {
+  0%   { transform: scale(0) rotate(-30deg); opacity: 0; }
+  60%  { transform: scale(1.4) rotate(10deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.star-appear {
+  animation: star-appear 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ── 頁面切換淡入 ── */
+.page-enter {
+  animation: fade-in 0.35s ease-out forwards;
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 質感背景紋理 ── */
+.texture-bg {
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(201,168,76,0.06) 0%, transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(45,90,61,0.05) 0%, transparent 60%);
+}
+
+/* ── 捲軸美化 ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #FAF8F3; }
+::-webkit-scrollbar-thumb { background: #C9A84C; border-radius: 2px; }
+
+/* ── 手機安全區域 ── */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
